@@ -20,7 +20,7 @@ def parse_args():
                         type=str, 
                         default="gpt.ini", 
                         help="Path to the ini file with API key and model settings",
-                        required=True)
+                        required= False)
     parser.add_argument(
         "--sleep",
         type=int,
