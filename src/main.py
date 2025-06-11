@@ -38,8 +38,35 @@ def parse_args():
         default="output.docx",
         help="Output Word document filename (default: output.docx)",
     )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Enable debug logging")
     args = parser.parse_args()
     return args
+
+
+def setup_logging(debug):
+    '''
+     Set up logging
+
+     Parameters:
+        debug (bool): True or False.
+
+     Returns:
+        None.
+
+    '''
+    # Set debug level
+    if debug:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(levelname)s: %(message)s')
+
+    return
 
 
 def main():
@@ -58,6 +85,8 @@ def main():
         frequency_penalty = args.frequency_penalty
     if args.presence_penalty is not None:
         presence_penalty = args.presence_penalty
+    
+    setup_logging(debug=args.debug)  # Set debug to True for verbose logging
     _logger.info(
         f"Using parameters: temperature={temperature}, top_p={top_p}, frequency_penalty={frequency_penalty}, presence_penalty={presence_penalty}"
     )
