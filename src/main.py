@@ -18,7 +18,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--ini", 
                         type=str, 
-                        default="gpt.ini", 
+                        default="ai.ini", 
                         help="Path to the ini file with API key and model settings",
                         required= False)
     parser.add_argument(
