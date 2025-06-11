@@ -72,7 +72,11 @@ BSD 2-Clause License
 
 ## Author
 
-Chris Marrison:wq
+Chris Marrison
+
+## Acknowledgements
+
+Special thanks to **Steve Makousky** for assistance with testing.
 
 ---
 
