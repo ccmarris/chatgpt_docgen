@@ -159,7 +159,7 @@ class ChatGPTClient():
         if not model:
             model = self.model
 
-        _logger.debug = f'Using model: {model}, temperature: {temperature}, top_p: {top_p}, frequency_penalty: {frequency_penalty}, presence_penalty: {presence_penalty}'
+        _logger.debug(f'Using model: {model}, temperature: {temperature}, top_p: {top_p}, frequency_penalty: {frequency_penalty}, presence_penalty: {presence_penalty}')
 
         try:
             response = self.ai.chat.completions.create(
