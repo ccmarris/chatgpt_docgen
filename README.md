@@ -1,4 +1,4 @@
-# ChatGPT WordGen
+# ChatGPT DocGen
 
 ## Overview
 
