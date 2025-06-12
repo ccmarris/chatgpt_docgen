@@ -37,6 +37,9 @@ pip install -r requirements.txt
    export OPENAI_API_KEY=sk-...
    ```
 
+   Alternatively use an inifile to store your API key and other defaults using
+   the template `ai.ini` example.
+
 2. **Edit your prompts**  
    - Modify `src/prompts.py` to set the list of prompts you want to send, **or**
    - Use the `--prompt-file` option to load prompts from a file (one per line).
@@ -54,7 +57,7 @@ pip install -r requirements.txt
    - `--top_p`: Nucleus sampling parameter (default: 1.0)
    - `--frequency_penalty`: Frequency penalty (default: 0.0)
    - `--presence_penalty`: Presence penalty (default: 0.0)
-   - `--sleep`, `-s`: Sleep time in seconds between requests (default: 10)
+   - `--sleep`, `-s`: Sleep time in seconds between requests (default: 1)
    - `--ini`, `-i`: Path to the ini file with API key and model settings (default: `ai.ini`)
    - `--debug`, `-d`: Enable debug logging
 

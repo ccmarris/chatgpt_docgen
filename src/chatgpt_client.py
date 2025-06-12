@@ -63,7 +63,7 @@ class ChatGPTClient():
         )
         self.last_response = None
         self.error = None
-        _logger.info(f'ChatGPTClient initialized')
+        _logger.debug(f'ChatGPTClient initialized')
 
         return
 

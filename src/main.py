@@ -6,7 +6,7 @@ Main script to generate responses from ChatGPT for a set of prompts and save the
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2023, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __email__ = "chris@infoblox.com"
 
 import logging
@@ -14,7 +14,7 @@ import argparse
 import chatgpt_client
 import time
 from prompts import PROMPTS
-from docgen import save_responses_to_docx
+from docgen import save_responses
 from rich import print
 from tqdm import tqdm
 
@@ -24,7 +24,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--ini", 
                         type=str, 
-                        default="ai.ini", 
                         help="Path to the ini file with API key and model settings",
                         required= False)
     parser.add_argument(
@@ -76,7 +75,7 @@ def setup_logging(debug):
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s: %(message)s')
     else:
-        logging.basicConfig(level=logging.INFO,
+        logging.basicConfig(level=logging.WARNING,
                             format='%(asctime)s %(levelname)s: %(message)s')
     return
 
@@ -96,43 +95,6 @@ def load_prompts(prompt_file=None):
     else:
         prompts = PROMPTS
     return prompts
-
-
-def save_responses(prompt_response_pairs, filename, output_format):
-    '''
-    Save the generated responses to a file in the specified format.
-    Parameters:
-        prompt_response_pairs (list): A list of tuples containing prompts and their corresponding responses.
-        filename (str): The name of the output file.
-        output_format (str): The format to save the responses in ("docx", "txt", or "md").
-    Returns:
-        None
-    '''
-    if output_format == "docx":
-        _logger.info(f"Saving responses to {filename} in DOCX format")
-        # Use the docgen module to save responses to a Word document
-        save_responses_to_docx(prompt_response_pairs, filename=filename)
-    elif output_format == "txt":
-        _logger.info(f"Saving responses to {filename} in TXT format")
-        # Save responses to a text file
-        with open(filename, "w", encoding="utf-8") as f:
-            for prompt, response in prompt_response_pairs:
-                f.write(f"Prompt: {prompt}\nResponse: {response}\n\n")
-    elif output_format == "md":
-        _logger.info(f"Saving responses to {filename} in Markdown format")
-        # Save responses to a Markdown file
-        with open(filename, "w", encoding="utf-8") as f:
-            for prompt, response in prompt_response_pairs:
-                f.write(f"## Prompt\n{prompt}\n\n### Response\n{response}\n\n")
-    elif output_format == "stdout":
-        _logger.info("Printing responses to stdout")
-        # Print responses to standard output
-        for prompt, response in prompt_response_pairs:
-            print(f"## Prompt: {prompt}\n## Response: {response}\n")
-    else:
-        _logger.error(f"Unknown output format: {output_format}")
-    
-    return
 
 
 def main():
@@ -164,7 +126,7 @@ def main():
     # Generate responses for each prompt
     try:
         for prompt in tqdm(prompts, desc="Processing prompts"):
-            _logger.info(f"Sending prompt: {prompt}")
+            _logger.debug(f"Sending prompt: {prompt}")
             response = client.get_response(
                 prompt,
                 temperature=args.temperature,
