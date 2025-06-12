@@ -6,7 +6,7 @@ Main script to generate responses from ChatGPT for a set of prompts and save the
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2023, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __email__ = "chris@infoblox.com"
 
 import logging
@@ -41,6 +41,15 @@ def parse_args():
         choices=["docx", "txt", "md", "stdout"],
         default="docx",
         help="Output format: docx (default), txt, md or stdout")
+    parser.add_argument(
+        "-t", "--title",
+        type=str,
+        help="Title for the document (default: 'Generated Responses'")
+    parser.add_argument(
+        "-P", "--asprompts",
+        action="store_true",
+        default=False,
+        help="Output responses as prompts (no prompts included in output)")
     parser.add_argument(
         "-p", "--prompt-file",
         type=str,
@@ -148,7 +157,13 @@ def main():
 
     if prompt_response_pairs:
         _logger.info(f"Saving responses to {args.output} (format: {args.output_format})")
-        save_responses(prompt_response_pairs, filename=args.output, output_format=args.output_format)
+        # Save responses to the specified output format
+        save_responses(prompt_response_pairs, 
+                       filename=args.output, 
+                       output_format=args.output_format,
+                       generate_title=False if args.asprompts else True,
+                       title=args.title if args.title else "Generated Responses",
+                       generate_as_prompts=args.asprompts)
     else:
         _logger.warning("No responses to save.")
 
