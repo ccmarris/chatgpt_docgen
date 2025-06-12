@@ -2,7 +2,7 @@
 
 ## Overview
 
-**ChatGPT WordGen** is a Python tool that automates sending multiple prompts to OpenAI's ChatGPT and generates a Microsoft Word document (or other formats) containing the responses. This is useful for batch content generation, documentation, research, or summarization tasks.
+**ChatGPT DocGen** is a Python tool that automates sending multiple prompts to OpenAI's ChatGPT and generates a Microsoft Word document (or other formats) containing the responses. This is useful for batch content generation, documentation, research, or summarization tasks.
 
 ## Features
 
@@ -12,7 +12,7 @@
 - Command-line interface for easy automation and integration
 - Progress bar for prompt processing
 - Graceful handling of interruptions (partial results are saved)
-- Flexible prompt source: use a file or the built-in list
+- Flexible prompt source: use a file or modify the built-in list (`prompts.py`)
 
 ## Requirements
 
