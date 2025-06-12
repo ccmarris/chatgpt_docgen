@@ -107,7 +107,13 @@ def load_prompts(prompt_file=None):
 
 
 def main():
-    # Example: custom weightings
+    """
+    Main function to generate responses from ChatGPT for a set of prompts and save them to a Word document.
+    This function parses command-line arguments, sets up logging, loads prompts, initializes the ChatGPT client,
+    generates responses for each prompt, and saves the responses to the specified output format.
+    Returns:
+        None
+    """
     prompt_response_pairs:list = []
     args = parse_args()
 

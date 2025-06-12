@@ -4,5 +4,5 @@ Suggest a prompt to generate a document section titled: Introduction: Modernizin
 Suggest a prompt to generate a document section titled: The Network’s Role in Delivering Healthcare support
 Suggest a prompt to generate a document section titled: Current Core Network Landscape
 Suggest a prompt to generate a document section titled: Site Classification Model Approach
-Suggest a prompt to generate a document section titled: Overview of Infoblox Universal DDI and Threat Defense
+Suggest a prompt to generate a document section titled: Overview of DDI and Protective DNS Solutions
 Suggest a prompt to generate a document section titled: Conclusion and Path Forward
