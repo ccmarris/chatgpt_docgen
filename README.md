@@ -13,6 +13,10 @@
 - Progress bar for prompt processing
 - Graceful handling of interruptions (partial results are saved)
 - Flexible prompt source: use a file or modify the built-in list (`prompts.py`)
+- Supports loading API key and defaults from an ini file
+- Optionally output only responses (no prompts)
+- Optionally include a document title
+- (Reserved) Option to generate a table of contents
 
 ## Requirements
 
@@ -60,17 +64,21 @@ pip install -r requirements.txt
    - `--sleep`, `-s`: Sleep time in seconds between requests (default: 1)
    - `--ini`, `-i`: Path to the ini file with API key and model settings (default: `ai.ini`)
    - `--debug`, `-d`: Enable debug logging
+   - `--generate-title`: Include a document title in the output (default: enabled)
+   - `--title`: Specify a custom document title
+   - `--generate-as-prompts`: Output only responses (no prompts)
+   - `--generate-toc`: (Reserved) Generate a table of contents
 
 ## Example
 
 ```bash
-python src/main.py --output summary.md --output-format md --prompt-file prompts.txt --temperature 0.7
+python src/main.py --output summary.md --output-format md --prompt-file prompts.txt --temperature 0.7 --generate-title --title "AI Generated Report"
 ```
 
 ## Project Structure
 
 ```
-chatgpt_wordgen/
+chatgpt_docgen/
 ├── src/
 │   ├── main.py
 │   ├── prompts.py
