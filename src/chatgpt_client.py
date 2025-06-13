@@ -47,10 +47,19 @@ class ChatGPTClient():
             # Set attributes from config or take defaults
             self.model = config.get('model', 'gpt-3.5-turbo')
             self.api_key = config.get('api_key', '')
+            self.temperature = float(config.get('temperature', 1.0))
+            self.top_p = float(config.get('top_p', 1.0))
+            self.frequency_penalty = float(config.get('frequency_penalty', 0.0))
+            self.presence_penalty = float(config.get('presence_penalty', 0.0))
+        # If no ini file is provided, use environment variables or defaults
         else:
             self.model = 'gpt-3.5-turbo'
             self.api_key = os.getenv("OPENAI_API_KEY")
-        
+            self.temperature = 1.0
+            self.top_p = 1.0
+            self.frequency_penalty = 0.0
+            self.presence_penalty = 0.0
+        _logger.debug(f'ChatGPTClient initialized with model: {self.model}, temperature: {self.temperature}, top_p: {self.top_p}, frequency_penalty: {self.frequency_penalty}, presence_penalty: {self.presence_penalty}')
 
         # Validate API key format
         if not self.api_key or not isinstance(self.api_key, str):
@@ -63,6 +72,7 @@ class ChatGPTClient():
         )
         self.last_response = None
         self.error = None
+        self.last_usage = {}
         _logger.debug(f'ChatGPTClient initialized')
 
         return
@@ -90,17 +100,10 @@ class ChatGPTClient():
         cfg = configparser.ConfigParser()
         config = {}
         section = 'CHATGPT'
-        ini_keys = ['model', 'api_key']
+        ini_keys = [ 'api_key', 'model', 
+                     'temperature', 'top_p', 
+                     'frequency_penalty', 'presence_penalty' ]
     
-        '''
-        Add these to the inifile config:
-        model="gpt-3.5-turbo",
-        temperature=1.0,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0):
-        '''
-
         # Check for inifile and raise exception if not found
         if os.path.isfile(filename):
             # Attempt to read api_key from ini file
@@ -117,7 +120,7 @@ class ChatGPTClient():
                         config[key] = cfg[section][key].strip("'\"")
                         _logger.debug(f'Key {key} found in {filename}: {config[key]}')
                     else:
-                        _logger.error(f'Key {key} not found in {section} section.')
+                        _logger.debug(f'Key {key} not found in {section} section.')
                         # raise IniFileKeyError(f'Key "{key}" not found within' +
                         #        f'[{section}] section of ini file {filename}')
                         
@@ -138,7 +141,6 @@ class ChatGPTClient():
         top_p=1.0,
         frequency_penalty=0.0,
         presence_penalty=0.0):
-
         '''
         Get a response from the OpenAI API based on the provided prompt and parameters.
         Parameters:
@@ -158,6 +160,15 @@ class ChatGPTClient():
 
         if not model:
             model = self.model
+        if not temperature:
+            temperature = self.temperature
+        if not top_p:
+            top_p = self.top_p
+        if not frequency_penalty:
+            frequency_penalty = self.frequency_penalty
+        if not presence_penalty:
+            presence_penalty = self.presence_penalty
+        # Log the parameters being used
 
         _logger.debug(f'Using model: {model}, temperature: {temperature}, top_p: {top_p}, frequency_penalty: {frequency_penalty}, presence_penalty: {presence_penalty}')
 
@@ -171,6 +182,11 @@ class ChatGPTClient():
                 presence_penalty=presence_penalty
             )
             self.last_response = response.choices[0].message.content.strip()
+            self.last_usage = {
+                'total_tokens': response.usage.total_tokens,
+                'prompt_tokens': response.usage.prompt_tokens,
+                'completion_tokens': response.usage.completion_tokens
+            }
             status = 'Success'
             _logger.debug(f'Response received: {self.last_response}')
         except openai.OpenAIError as e:

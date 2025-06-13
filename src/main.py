@@ -6,7 +6,7 @@ Main script to generate responses from ChatGPT for a set of prompts and save the
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2023, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __email__ = "chris@infoblox.com"
 
 import logging
@@ -115,7 +115,13 @@ def main():
         None
     """
     prompt_response_pairs:list = []
+    total_tokens:int = 0
     args = parse_args()
+
+    temperature = None
+    top_p = None
+    frequency_penalty = None
+    presence_penalty = None
 
     if args.temperature is not None:
         temperature = args.temperature
@@ -144,11 +150,12 @@ def main():
             _logger.debug(f"Sending prompt: {prompt}")
             response = client.get_response(
                 prompt,
-                temperature=args.temperature,
-                top_p=args.top_p,
-                frequency_penalty=args.frequency_penalty,
-                presence_penalty=args.presence_penalty,
+                temperature=temperature,
+                top_p=top_p,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
             )
+            total_tokens += client.last_usage.get('total_tokens', 0)
             if response == 'Success':
                 prompt_response_pairs.append((prompt, client.last_response))
                 time.sleep(args.sleep)
@@ -172,6 +179,9 @@ def main():
                        generate_as_prompts=args.asprompts)
     else:
         _logger.warning("No responses to save.")
+
+    _logger.warning(f"Total tokens used: {total_tokens}")
+    print(f"[yellow]Total tokens used: {total_tokens}[/yellow]")
 
     return
 
