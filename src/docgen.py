@@ -27,7 +27,8 @@ def save_responses(prompt_response_pairs: list,
     if output_format == "docx":
         _logger.info(f"Saving responses to {filename} in DOCX format")
         # Use the docgen module to save responses to a Word document
-        save_responses_to_docx(prompt_response_pairs, filename=filename)
+        save_responses_to_docx(prompt_response_pairs, filename=filename, 
+                               title=title, generate_title=generate_title)
     elif output_format == "txt":
         _logger.info(f"Saving responses to {filename} in TXT format")
         # Save responses to a text file
