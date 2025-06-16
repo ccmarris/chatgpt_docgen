@@ -59,7 +59,7 @@ def parse_args():
         type=str,
         help="Path to a file containing prompts (one per line). If not set, uses PROMPTS from prompts.py")
     parser.add_argument(
-        "--ignore_cache",
+        "--ignore-cache",
         action="store_true",
         help="Ignore cached responses and regenerate all prompts")
     parser.add_argument(
@@ -164,7 +164,7 @@ def main():
     try:
         for prompt in tqdm(prompts, desc="Processing prompts"):
             _logger.debug(f"Sending prompt: {prompt}")
-            if args.ignore_cache:
+            if args.ignore-cache:
                 response = client.get_response(
                     prompt,
                     model=client.model,
