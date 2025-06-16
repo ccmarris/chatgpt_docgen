@@ -10,7 +10,7 @@ tasks.
 
 ## Features
 
-- Send a customizable list of prompts to ChatGPT (via the OpenAI API)
+- Send a customizable list of prompts to a Gen AI system (via the OpenAI API)
 - Configure model parameters such as `temperature`, `top_p`, `frequency_penalty`, and `presence_penalty`
 - Save all prompt-response pairs in a formatted Word document (`.docx`), Markdown (`.md`), plain text (`.txt`), or print to stdout
 - Command-line interface for easy automation and integration
