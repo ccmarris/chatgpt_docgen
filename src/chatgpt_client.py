@@ -1,16 +1,21 @@
 import logging
 import configparser
-import openai
 import os
+import openai
+import json
+from platformdirs import user_cache_dir
+from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
 class IniFileSectionError(Exception):
     """Exception raised when a required section is missing in the ini file."""
     pass
+
 class IniFileKeyError(Exception):
     """Exception raised when a required key is missing in the ini file."""
     pass
+
 class APIKeyFormatError(Exception):
     """Exception raised when the API key format is incorrect."""
     pass    
@@ -33,7 +38,7 @@ class ChatGPTClient():
                      frequency_penalty: float, presence_penalty: float) -> str:
             Gets a response from the OpenAI API based on the provided prompt and parameters.
     """
-    def __init__(self, inifile:str=''):
+    def __init__(self, inifile:str='', cache_file='prompt_cache.json'):
         """
         Initialize the ChatGPTClient with configuration from an ini file.
 
@@ -74,6 +79,10 @@ class ChatGPTClient():
         self.error = None
         self.last_usage = {}
         _logger.debug(f'ChatGPTClient initialized')
+    
+        self.cache_dir = user_cache_dir("chatgpt_docgen")
+        self.cache_file = self.cache_dir + '/' + cache_file
+        self.cache = self._load_cache()
 
         return
 
@@ -132,6 +141,146 @@ class ChatGPTClient():
             raise FileNotFoundError('ini file "{filename}" not found.')
 
         return config
+
+
+    def _load_cache(self):
+        '''
+        Load the cache from the cache file.
+
+        Returns:
+            list: List of cached responses.
+        '''
+        cache = []
+
+        if os.path.exists(self.cache_file):
+            with open(self.cache_file, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+            cache = self._validate_cache(cache)
+        else:
+            # Create the cache directory if it doesn't exist
+            os.makedirs(self.cache_dir, exist_ok=True)
+            _logger.debug(f'Cache file not found, creating new cache file: {self.cache_file}')
+            # Initialize an empty cache
+            with open(self.cache_file, "w", encoding="utf-8") as f:
+                json.dump(cache, f, indent=2)
+            
+        _logger.debug(f'Cache loaded with {len(cache)} entries.')
+
+        return cache
+
+    def _validate_cache(self, cache):
+        # Ensure all entries have the required fields
+        # Ensure the cache is a list
+        if not isinstance(cache, list):
+            _logger.error(f'Cache file {self.cache_file} is not a valid JSON list. Resetting cache.')
+            cache = []
+            with open(self.cache_file, "w", encoding="utf-8") as f:
+                json.dump(cache, f, indent=2)
+        # Ensure the cache is a list of dictionaries
+        if not all(isinstance(entry, dict) for entry in cache):
+            _logger.error(f'Cache file {self.cache_file} contains non-dictionary entries. Resetting cache.')
+            cache = []
+            with open(self.cache_file, "w", encoding="utf-8") as f:
+                json.dump(cache, f, indent=2)
+        for entry in cache:
+            if not all(key in entry for key in ["prompt", "model", "temperature", "top_p", "frequency_penalty", "presence_penalty", "response", "timestamp"]):
+                _logger.error(f'Cache entry {entry} is missing required fields. Resetting cache.')
+                cache = []
+                with open(self.cache_file, "w", encoding="utf-8") as f:
+                    json.dump(cache, f, indent=2)
+                break
+        _logger.debug(f'Cache loaded successfully with {len(cache)} entries.')
+        # Return the loaded cache
+        
+        return cache
+
+    def _clean_cache(self, cache_file="openai_cache.json", days=28):
+
+        cutoff = datetime.now() - timedelta(days=days)
+        cleaned_cache = [
+            entry for entry in self.cache
+            if "timestamp" in entry and datetime.fromisoformat(entry["timestamp"]) >= cutoff
+        ]
+
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump(cleaned_cache, f, indent=2)
+
+        _logger.debug(f"Cleaned cache. {len(cache) - len(cleaned_cache)} entries removed.")
+        self.cache = cleaned_cache
+        self._save_cache()
+        _logger.debug(f'Cache cleaned. {len(self.cache)} entries remaining.') 
+
+        return cleaned_cache
+
+
+    def _clear_cache(self):
+        '''
+        Clear the cache by removing the cache file.
+        '''
+        if os.path.exists(self.cache_file):
+            os.remove(self.cache_file)
+            self.cache = self._load_cache()  # Reload the cache to ensure it's empty
+            _logger.info(f'Cache cleared: {self.cache_file}')
+        else:
+            _logger.info('No cache file to clear.')
+        return
+
+    def _save_cache(self):
+        with open(self.cache_file, "w", encoding="utf-8") as f:
+            json.dump(self.cache, f, indent=2)
+        return
+
+    def _find_in_cache(self, prompt, params):
+        response = None
+        for entry in self.cache:
+            if (entry["prompt"] == prompt and entry["model"] == self.model and
+                entry["temperature"] == params["temperature"] and
+                entry["top_p"] == params["top_p"] and
+                entry["frequency_penalty"] == params["frequency_penalty"] and
+                entry["presence_penalty"] == params["presence_penalty"]):
+                response = entry["response"]
+        return response
+
+    def _cache_response(self, prompt, params, response):
+        self.cache.append({
+            "prompt": prompt,
+            "model": self.model,
+            "temperature": params["temperature"],
+            "top_p": params["top_p"],
+            "frequency_penalty": params["frequency_penalty"],
+            "presence_penalty": params["presence_penalty"],
+            "response": response,
+            "timestamp": datetime.now().isoformat()
+        })
+        self._save_cache()
+        return 
+
+    def _clear_cache(self):
+        '''
+        Clear the cache by removing the cache file.
+        '''
+        if os.path.exists(self.cache_file):
+            os.remove(self.cache_file)
+            self.cache = []
+            _logger.debug(f'Cache cleared: {self.cache_file}')
+        else:
+            _logger.debug('No cache file to clear.')
+        return 
+
+    def use_cache(self, prompt, **params):
+        cached = self._find_in_cache(prompt, params)
+        if cached:
+            self.last_response = cached
+            _logger.debug(f'Cache hit for prompt: {prompt}')
+            response = 'Success'
+        else:
+            _logger.debug(f'Cache miss for prompt: {prompt}')
+            # If not found in cache, get a new response
+            response = self.get_response(prompt, **params)
+            if response is "Success":
+                self._cache_response(prompt, params, self.last_response)
+
+        return response
 
 
     def get_response(self,

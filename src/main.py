@@ -6,7 +6,7 @@ Main script to generate responses from ChatGPT for a set of prompts and save the
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2023, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __email__ = "chris@infoblox.com"
 
 import logging
@@ -17,8 +17,12 @@ from prompts import PROMPTS
 from docgen import save_responses
 from rich import print
 from tqdm import tqdm
+from platformdirs import user_config_dir, user_cache_dir
 
 _logger = logging.getLogger(__name__)
+
+CONFIGDIR = user_config_dir("chatgpt_docgen")
+CONFIGFILE = "chatgpt_docgen.ini"
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -54,6 +58,10 @@ def parse_args():
         "-p", "--prompt-file",
         type=str,
         help="Path to a file containing prompts (one per line). If not set, uses PROMPTS from prompts.py")
+    parser.add_argument(
+        "--ignore_cache",
+        action="store_true",
+        help="Ignore cached responses and regenerate all prompts")
     parser.add_argument(
         "-d",
         "--debug",
@@ -142,19 +150,38 @@ def main():
     prompts = load_prompts(args.prompt_file)
 
     # Initialize ChatGPT client
+    if not args.ini:
+        filename = f"{CONFIGDIR}/{CONFIGFILE}"
+        if os.path.exists(filename):
+            args.ini = filename
+            _logger.debug(f"No ini file specified, using default: {args.ini}")
+        else:
+            args.ini = None
+
     client = chatgpt_client.ChatGPTClient(inifile=args.ini)
 
     # Generate responses for each prompt
     try:
         for prompt in tqdm(prompts, desc="Processing prompts"):
             _logger.debug(f"Sending prompt: {prompt}")
-            response = client.get_response(
-                prompt,
-                temperature=temperature,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
-            )
+            if args.ignore_cache:
+                response = client.get_response(
+                    prompt,
+                    model=client.model,
+                    temperature=temperature,
+                    top_p=top_p,
+                    frequency_penalty=frequency_penalty,
+                    presence_penalty=presence_penalty,
+                )
+            else:
+                response = client.use_cache(
+                    prompt,
+                    model =client.model,
+                    temperature=temperature,
+                    top_p=top_p,
+                    frequency_penalty=frequency_penalty,
+                    presence_penalty=presence_penalty,
+                )
             total_tokens += client.last_usage.get('total_tokens', 0)
             if response == 'Success':
                 prompt_response_pairs.append((prompt, client.last_response))
