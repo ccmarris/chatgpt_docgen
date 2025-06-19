@@ -61,6 +61,10 @@ def parse_args():
         action="store_false",
         help="Ignore cached responses and regenerate all prompts")
     parser.add_argument(
+        "--clear_cache",
+        action="store_true",
+        help="Clear the cache for the specified provider before generating responses")
+    parser.add_argument(
         "-s", "--sleep",
         type=int,
         default=1,
@@ -164,6 +168,11 @@ def main():
         else:
             args.ini = None
 
+    if args.clear_cache:
+        _logger.info(f"Clearing cache for provider: {args.provider}")
+        if genai_client.clear_cache(provider=args.provider):
+            _logger.info("Cache cleared successfully.")
+    
     client = genai_client.get_llm_client(provider=args.provider,
                                          inifile=args.ini, 
                                          use_cache=args.ignore_cache)

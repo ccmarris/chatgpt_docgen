@@ -226,6 +226,16 @@ class OpenAIClient(LLMClient):
                 # If cache miss, call the OpenAI API
                 _logger.debug(f'Cache miss for prompt: {prompt}')
                 status = self.call_api(prompt, model, temperature, top_p, frequency_penalty, presence_penalty)
+                try:
+                    _logger.debug(f'Caching response for prompt: {prompt}')
+                    self.cache.add_entry(prompt=prompt, 
+                                        response=self.last_response, 
+                                        model=model, temperature=temperature, 
+                                        top_p=top_p, 
+                                        frequency_penalty=frequency_penalty, 
+                                        presence_penalty=presence_penalty)
+                except Exception as e:
+                    _logger.error(f"Error saving response to cache: {e}")
 
         else:
             # If cache is disabled, call the OpenAI API directly
@@ -234,17 +244,6 @@ class OpenAIClient(LLMClient):
                                    temperature, top_p, 
                                    frequency_penalty, presence_penalty)
 
-        if status == 'Success' and self.cache:
-            _logger.debug(f'Caching response for prompt: {prompt}')
-            try:
-                self.cache.add_entry(prompt=prompt, 
-                                    response=self.last_response, 
-                                    model=model, temperature=temperature, 
-                                    top_p=top_p, 
-                                    frequency_penalty=frequency_penalty, 
-                                    presence_penalty=presence_penalty)
-            except Exception as e:
-                _logger.error(f"Error saving response to cache: {e}")
 
         return status
 
@@ -308,6 +307,25 @@ def get_llm_client(provider="openai", **kwargs):
            return OpenAIClient(kwargs.get('inifile',''), use_cache=kwargs.get('use_cache', True))
     else:
         raise ValueError(f"Unknown provider: {provider}")
+
+def clear_cache(provider="openai", inifile=''):
+    """
+    Clear the response cache for the specified provider.
+    Parameters:
+        provider (str): The LLM provider to clear the cache for.
+        inifile (str): Path to the ini file containing configuration.
+    """
+    success = False
+    try:
+        cache = response_cache.RESPONSECACHE(cache_type=provider)
+        cache.reset()
+        success = True
+        _logger.info(f"Cache cleared for provider: {provider}")
+    except Exception as e:
+        _logger.error(f"Error clearing cache for provider {provider}: {e}")
+        success = False
+    
+    return success
 
 # Example usage in main.py:
 # client = get_llm_client(provider=args.provider, inifile=args.ini)
