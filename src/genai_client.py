@@ -7,7 +7,7 @@ import openai
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2025, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __email__ = "chris@infoblox.com"
 
 _logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class OpenAIClient(LLMClient):
     Client for OpenAI's GPT models.
     This client supports configuration via an ini file or environment variables.
     """
-    def __init__(self, inifile='', use_cache=True):
+    def __init__(self, inifile='', use_cache:bool=True):
         """
         Initialize the OpenAI API with configuration from an ini file.
 
@@ -80,8 +80,8 @@ class OpenAIClient(LLMClient):
             _logger.info("Using cache for responses.")
             self.cache = response_cache.RESPONSECACHE(cache_type='openai')
         else:
-            self.cache = None
             _logger.info("Cache is disabled. Responses will not be cached.")
+            self.cache = None
 
         return
 
@@ -211,7 +211,7 @@ class OpenAIClient(LLMClient):
 
         _logger.debug(f'Using model: {model}, temperature: {temperature}, top_p: {top_p}, frequency_penalty: {frequency_penalty}, presence_penalty: {presence_penalty}')
 
-        if self.cache:
+        if self.cache is not None:
             # If cache is enabled, check if the response is already cached
             _logger.debug(f'Cache is enabled, checking cache for prompt: {prompt}')
 
@@ -303,9 +303,9 @@ class AnthropicClient(LLMClient):
 
 def get_llm_client(provider="openai", **kwargs):
     if provider == "openai":
-        return OpenAIClient(kwargs.get('inifile', ''))
+        return OpenAIClient(kwargs.get('inifile', ''), use_cache=kwargs.get('use_cache', True))
     elif provider == "anthropic":
-        return AnthropicClient(kwargs.get('api_key', ''))
+           return OpenAIClient(kwargs.get('inifile',''), use_cache=kwargs.get('use_cache', True))
     else:
         raise ValueError(f"Unknown provider: {provider}")
 
