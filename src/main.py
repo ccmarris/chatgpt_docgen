@@ -4,14 +4,14 @@
 Main script to generate responses from ChatGPT for a set of prompts and save them to a Word document.
 """
 __author__ = "Chris Marrison"
-__copyright__ = "Copyright 2023, Chris Marrison / Infoblox"
+__copyright__ = "Copyright 2025, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.1.5"
+__version__ = "0.2.0"
 __email__ = "chris@infoblox.com"
 
 import logging
 import argparse
-import chatgpt_client
+import genai_client
 import time
 from prompts import PROMPTS
 from docgen import save_responses
@@ -21,8 +21,6 @@ from platformdirs import user_config_dir, user_cache_dir
 
 _logger = logging.getLogger(__name__)
 
-CONFIGDIR = user_config_dir("chatgpt_docgen")
-CONFIGFILE = "chatgpt_docgen.ini"
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -31,10 +29,10 @@ def parse_args():
                         help="Path to the ini file with API key and model settings",
                         required= False)
     parser.add_argument(
-        "-s", "--sleep",
-        type=int,
-        default=1,
-        help="Sleep time in seconds between requests to avoid hitting rate limits (default: 1 second)")
+        "-P", "--provider",
+        type=str,
+        default="openai",
+        help="GenAI provider to use (default: openai). Other options: 'anthropic', 'azure', 'google', etc.")
     parser.add_argument(
         "-o", "--output",
         type=str,
@@ -50,7 +48,7 @@ def parse_args():
         type=str,
         help="Title for the document (default: 'Generated Responses'")
     parser.add_argument(
-        "-P", "--asprompts",
+        "-a", "--asprompts",
         action="store_true",
         default=False,
         help="Output responses as prompts (no prompts included in output)")
@@ -60,8 +58,13 @@ def parse_args():
         help="Path to a file containing prompts (one per line). If not set, uses PROMPTS from prompts.py")
     parser.add_argument(
         "--ignore-cache",
-        action="store_true",
+        action="store_false",
         help="Ignore cached responses and regenerate all prompts")
+    parser.add_argument(
+        "-s", "--sleep",
+        type=int,
+        default=1,
+        help="Sleep time in seconds between requests to avoid hitting rate limits (default: 1 second)")
     parser.add_argument(
         "-d",
         "--debug",
@@ -126,6 +129,9 @@ def main():
     total_tokens:int = 0
     args = parse_args()
 
+    CONFIGDIR = user_config_dir(f"{args.provider}_docgen")
+    CONFIGFILE = f"{args.provider}_docgen.ini"
+
     temperature = None
     top_p = None
     frequency_penalty = None
@@ -158,31 +164,26 @@ def main():
         else:
             args.ini = None
 
-    client = chatgpt_client.ChatGPTClient(inifile=args.ini)
+    client = genai_client.get_llm_client(provider=args.provider,
+                                         inifile=args.ini, 
+                                         use_cache=args.ignore_cache)
 
     # Generate responses for each prompt
     try:
         for prompt in tqdm(prompts, desc="Processing prompts"):
             _logger.debug(f"Sending prompt: {prompt}")
-            if args.ignore-cache:
-                response = client.get_response(
-                    prompt,
-                    model=client.model,
-                    temperature=temperature,
-                    top_p=top_p,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                )
-            else:
-                response = client.use_cache(
-                    prompt,
-                    model =client.model,
-                    temperature=temperature,
-                    top_p=top_p,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                )
+
+            response = client.get_response(
+                prompt,
+                model=client.model,
+                temperature=temperature,
+                top_p=top_p,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
+            # Check token usage
             total_tokens += client.last_usage.get('total_tokens', 0)
+
             if response == 'Success':
                 prompt_response_pairs.append((prompt, client.last_response))
                 time.sleep(args.sleep)
