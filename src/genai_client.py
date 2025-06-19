@@ -7,7 +7,7 @@ import openai
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2025, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __email__ = "chris@infoblox.com"
 
 _logger = logging.getLogger(__name__)
