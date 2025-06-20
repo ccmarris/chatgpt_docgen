@@ -3,3 +3,5 @@ python-docx
 python-dotenv
 tqdm
 rich
+platformdirs
+anthropic
