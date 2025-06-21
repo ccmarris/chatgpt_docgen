@@ -278,20 +278,18 @@ class AnthropicClient(LLMClient):
             _logger.info(f'Using ini file: {inifile}')
             config = self.process_inifile(filename=inifile)
             # Set attributes from config or take defaults
-            self.model = config.get('model', '')
+            self.model = config.get('model', 'claude-3-5-haiku-latest')
             self.api_key = config.get('api_key', '')
-            # self.temperature = float(config.get('temperature', 1.0))
-            # self.top_p = float(config.get('top_p', 1.0))
-            # self.frequency_penalty = float(config.get('frequency_penalty', 0.0))
-            # self.presence_penalty = float(config.get('presence_penalty', 0.0))
+            self.temperature = float(config.get('temperature', 1.0))
+            self.top_p = float(config.get('top_p', 0.7))
+            # self.top_k = int(config.get('top_k', 0))
         # If no ini file is provided, use environment variables or defaults
         else:
-            self.model = 'claude-3.5-haiku-latest'
+            self.model = 'claude-3-5-haiku-latest'
             self.api_key = os.getenv("ANTHROPIC_API_KEY")
-            # self.temperature = 1.0
-            # self.top_p = 1.0
-            # self.frequency_penalty = 0.0
-            # self.presence_penalty = 0.0
+            self.temperature = 1.0
+            self.top_p = 0.7
+            # self.top_k = 0
         _logger.debug(f'Claude initialized with model: {self.model},') 
 
         # Validate API key format
@@ -300,9 +298,10 @@ class AnthropicClient(LLMClient):
         if not self.api_key.startswith('sk-'):
             raise APIKeyFormatError("API key must start with 'sk-'.")
 
-        self.ai = openai.OpenAI(
-            api_key=self.api_key,
+        self.ai = anthropic.Anthropic(
+            api_key=self.api_key
         )
+
         self.last_response = None
         self.error = None
         self.last_usage = {}
@@ -382,9 +381,7 @@ class AnthropicClient(LLMClient):
         prompt:str,
         model:str='',
         temperature=1.0,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0):
+        top_p=1.0):
         '''
         Get a response from the OpenAI API based on the provided prompt and parameters.
         Parameters:
@@ -408,13 +405,11 @@ class AnthropicClient(LLMClient):
             temperature = self.temperature
         if not top_p:
             top_p = self.top_p
-        if not frequency_penalty:
-            frequency_penalty = self.frequency_penalty
-        if not presence_penalty:
-            presence_penalty = self.presence_penalty
+        # if not top_k:
+        #     top_k = self.top_k
         # Log the parameters being used
 
-        _logger.debug(f'Using model: {model}, temperature: {temperature}, top_p: {top_p}, frequency_penalty: {frequency_penalty}, presence_penalty: {presence_penalty}')
+        _logger.debug(f'Using model: {model}, temperature: {temperature}, top_p: {top_p}')
 
         if self.cache is not None:
             # If cache is enabled, check if the response is already cached
@@ -422,23 +417,19 @@ class AnthropicClient(LLMClient):
 
             if self.check_cache(prompt=prompt, model=model, 
                                 temperature=temperature, 
-                                top_p=top_p, 
-                                frequency_penalty=frequency_penalty, 
-                                presence_penalty=presence_penalty):
+                                top_p=top_p):
                 status = 'Success'
                 _logger.debug(f'Response from cache: {self.last_response}')
             else:
                 # If cache miss, call the OpenAI API
                 _logger.debug(f'Cache miss for prompt: {prompt}')
-                status = self.call_api(prompt, model, temperature, top_p, frequency_penalty, presence_penalty)
+                status = self.call_api(prompt, model, temperature, top_p)
                 try:
                     _logger.debug(f'Caching response for prompt: {prompt}')
                     self.cache.add_entry(prompt=prompt, 
                                         response=self.last_response, 
                                         model=model, temperature=temperature, 
-                                        top_p=top_p, 
-                                        frequency_penalty=frequency_penalty, 
-                                        presence_penalty=presence_penalty)
+                                        top_p=top_p)
                 except Exception as e:
                     _logger.error(f"Error saving response to cache: {e}")
 
@@ -446,11 +437,46 @@ class AnthropicClient(LLMClient):
             # If cache is disabled, call the OpenAI API directly
             _logger.debug(f'Cache is disabled, calling OpenAI API directly for prompt: {prompt}')
             status = self.call_api(prompt, model, 
-                                   temperature, top_p, 
-                                   frequency_penalty, presence_penalty)
+                                   temperature, top_p)
 
 
         return status
+
+
+    def call_api(self, prompt, model, temperature, top_p):
+        """
+        Call the OpenAI API to get a response for the given prompt and parameters.
+                _logger.debug(f'Cache miss for prompt: {prompt}')
+                status = self._call_openai_api(prompt, model, temperature, top_p, frequency_penalty, presence_penalty)
+                if status == 'Success' and self.cache:
+                    _logger.debug(f'Caching response for prompt: {prompt}')
+                    self.cache.save_response(prompt, self.last_response, model=model, temperature=temperature, top_p=top_p, frequency_penalty=frequency_penalty, presence_penalty=presence_penalty)
+
+        else:
+            status = self._call_openai_api(prompt, model, temperature, top_p, frequency_penalty=frequency_penalty, presence_penalty=presence_penalty)
+        """
+        _logger.debug(f'Calling Claude API with prompt: {prompt}')
+        try:
+            response = self.ai.messages.create(
+                model=model,
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                top_p=top_p)
+            self.last_response = response.content[0].text.strip()
+            self.last_usage = {
+                'total_tokens': response.usage.input_tokens + response.usage.output_tokens,
+                'prompt_tokens': response.usage.input_tokens,
+                'completion_tokens': response.usage.output_tokens
+            }
+            status = 'Success'
+            _logger.debug(f'Response received: {self.last_response}')
+        except anthropic.AnthropicError as e:
+            _logger.error(f"Anthropic API error: {e}")
+            status = f"Error: {e}"
+
+        return status
+
 
 # ** Facilitate ini file for basic configuration including API Key
 """Exception raised when the API key format is incorrect."""
@@ -509,7 +535,7 @@ def get_llm_client(provider="openai", **kwargs):
     if provider == "openai":
         return OpenAIClient(kwargs.get('inifile', ''), use_cache=kwargs.get('use_cache', True))
     elif provider == "anthropic":
-           return OpenAIClient(kwargs.get('inifile',''), use_cache=kwargs.get('use_cache', True))
+           return AnthropicClient(kwargs.get('inifile',''), use_cache=kwargs.get('use_cache', True))
     else:
         raise ValueError(f"Unknown provider: {provider}")
 

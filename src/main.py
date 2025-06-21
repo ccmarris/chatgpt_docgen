@@ -6,7 +6,7 @@ Main script to generate responses from ChatGPT for a set of prompts and save the
 __author__ = "Chris Marrison"
 __copyright__ = "Copyright 2025, Chris Marrison / Infoblox"
 __license__ = "BSD2"
-__version__ = "0.2.2"
+__version__ = "0.2.5"
 __email__ = "chris@infoblox.com"
 
 import logging
@@ -186,9 +186,9 @@ def main():
                 prompt,
                 model=client.model,
                 temperature=temperature,
-                top_p=top_p,
-                frequency_penalty=frequency_penalty,
-                presence_penalty=presence_penalty,
+                top_p=top_p
+                # frequency_penalty=frequency_penalty,
+                # presence_penalty=presence_penalty,
             )
             # Check token usage
             total_tokens += client.last_usage.get('total_tokens', 0)
